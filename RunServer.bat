@@ -1,0 +1,1 @@
+docker run -i -p 8001:8001 exam-service-image
