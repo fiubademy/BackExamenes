@@ -1,1 +1,1 @@
-uvicorn service.ExamsService:app --reload
+uvicorn service.baseService.ExamsService:app --reload
