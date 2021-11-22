@@ -68,7 +68,8 @@ class ChoiceResponse(Base):
 
 class UserResponse(Base):
     __tablename__ = "user_responses"
-    exam_id = Column(String, ForeignKey('exams.exam_id'), primary_key = True, nullable = False)
+    exam_id = Column(String, ForeignKey('exams.exam_id'), nullable = False)
+    user_id = Column(String, primary_key = True, nullable = False)
     question_id = Column(String, ForeignKey('exams_questions.question_id'), primary_key = True, nullable = False)
     response_content = Column(String)
     choice_number = Column(Integer)
