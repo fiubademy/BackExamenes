@@ -14,6 +14,8 @@ from fastapi import APIRouter
 from datetime import datetime, timedelta
 import sys
 import os
+
+from starlette.status import HTTP_201_CREATED
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from Models.Models import *
 import uuid
@@ -46,7 +48,8 @@ async def getExamByCourses(course_id: str):
             {
                 'ExamID': exam.exam_id, 
                 'CourseID': exam.course_id,
-                'Date': exam.exam_date.strftime('%d/%m/%y %H:%M')
+                'Date': exam.exam_date.strftime('%d/%m/%y %H:%M'),
+                'ExamTitle': exam.exam_title
             }
         )
     return JSONResponse(
@@ -68,7 +71,8 @@ async def getExamById(exam_id: str):
         content = {
                 'ExamID': exam.exam_id, 
                 'CourseID': exam.course_id,
-                'Date': exam.exam_date.strftime('%d/%m/%y %H:%M')
+                'Date': exam.exam_date.strftime('%d/%m/%y %H:%M'),
+                'ExamTitle': exam.exam_title
             }
     )
 
@@ -86,10 +90,10 @@ def rollback_exam_creation(exam_id):
 
 
 @router.post('/create_exam/{course_id}')
-async def createExam(course_id: str, questionsList: List[questionsContent], examDate: datetime):
+async def createExam(course_id: str, questionsList: List[questionsContent], examDate: datetime, examTitle: str):
     exam_id = str(uuid.uuid4())
     try:
-        session.add(Exam(exam_id = exam_id, course_id = course_id, exam_date = examDate))
+        session.add(Exam(exam_id = exam_id, course_id = course_id, exam_date = examDate, exam_title = examTitle))
         session.commit()
     except Exception as e:
         session.rollback()
@@ -136,7 +140,7 @@ async def createExam(course_id: str, questionsList: List[questionsContent], exam
             if num_choices_correct == 0:
                  rollback_exam_creation(exam_id)
                  return JSONResponse(status_Code = status.HTTP_400_BAD_REQUEST, content = 'Choice answers with no correct answer has been found.')
-    return JSONResponse(status_code = status.HTTP_200_OK, content = {"exam_id":exam_id, "course_id":course_id, "exam_date": examDate.strftime('%d/%m/%y %H:%M')})
+    return JSONResponse(status_code = status.HTTP_200_OK, content = {"exam_id":exam_id, "course_id":course_id, "exam_date": examDate.strftime('%d/%m/%y %H:%M'), 'ExamTitle': examTitle})
 
 
 @router.get('/{exam_id}/questions')
@@ -180,18 +184,30 @@ async def getQuestionsForExam(exam_id: str):
 
 @router.get('/student/{user_id}/student_response/{question_id}')
 async def getStudentResponseForQuestion(question_id: str, user_id: str):
-    student_response = session.query(UserResponse).filter(UserResponse.question_id == question_id and UserResponse.us).first()
+    student_response = session.query(UserResponse).filter(UserResponse.question_id == question_id).filter(UserResponse.user_id == user_id).first()
     if not student_response:
         return JSONResponse(status_code = status.HTTP_404_NOT_FOUND, content = "User " + user_id + " has not responded to question " + question_id)
-    return JSONResponse(status_code = status.HTTP_200_OK, content = student_response)
+    return JSONResponse(
+        status_code = status.HTTP_200_OK, 
+        content = {
+            'exam_id': student_response.exam_id,
+            'user_id' : student_response.user_id,
+            'question_id': student_response.question_id,
+            'response_content': student_response.response_content,
+            'choice_number': student_response.choice_number
+        }
+    )
 
 
 @router.patch('/edit_exam/{exam_id}')
-async def editExam(exam_id:str, exam_date:datetime):
+async def editExam(exam_id:str, exam_date:datetime = None, exam_title: str = None):
     exam = session.query(Exam).filter(Exam.exam_id == exam_id).first()
     if not exam:
         return JSONResponse(status_code = status.HTTP_404_NOT_FOUND, content = "Exam with ID " + exam_id + " was not found in the database.")
-    exam.exam_date = exam_date
+    if exam_date != None:
+        exam.exam_date = exam_date
+    if exam_title != None:
+        exam.exam_title = exam_title
     session.add(exam)
     session.commit()
     return JSONResponse(status_code = status.HTTP_202_ACCEPTED, content = "Exam with ID " + exam_id + " was correctly modified.")
@@ -234,18 +250,20 @@ async def editExamQuestions(question_id:str, question_content: questionsContent)
     return JSONResponse(status_code = status.HTTP_202_ACCEPTED, content = "Question " + question_id + " has been correctly modified.")
 
 
-@router.post('/{exam_id}/answer')
-async def postAnswersExam(exam_id:str , question_id: str , response_content: Optional[str] = None , choice_number: Optional[int] = None):
+@router.post('/{exam_id}/answer/{question_id}')
+async def postAnswersExam(exam_id:str , question_id: str, user_id:str, response_content: Optional[str] = None , choice_number: Optional[int] = None):
     if response_content == None and choice_number == None:
         return JSONResponse(status_code = status.HTTP_422_VALIDATION_ERROR, content = "Response Content and Choice Number can not be None together.")
     if response_content != None and choice_number != None:
         return JSONResponse(status_code = status.HTTP_422_VALIDATION_ERROR, content = "Response Content and Choice Number can not have a value together.")
+    retorno_content = response_content
+    retorno_choice_num = choice_number
     try:
         if response_content == None:
             response_content = null()
         if choice_number == None:
             choice_number = null()
-        session.add(UserResponse(exam_id , question_id, response_content , choice_number))
+        session.add(UserResponse(exam_id = exam_id, question_id = question_id, user_id = user_id, response_content = response_content, choice_number = choice_number))
         session.commit()
     except Exception as e:
         session.rollback()
@@ -255,10 +273,27 @@ async def postAnswersExam(exam_id:str , question_id: str , response_content: Opt
         content = {
             "exam_id":exam_id, 
             "question_id":question_id, 
-            "response_content": response_content, 
-            "choice_number":choice_number
+            "response_content": retorno_content, 
+            "choice_number":retorno_choice_num
             }
     )
+
+@router.delete('/responses/{user_id}/{question_id}')
+async def deleteUserResponse(user_id: str, question_id:str):
+    if not session.query(UserResponse).filter(UserResponse.user_id == user_id).filter(UserResponse.question_id == question_id).first():
+        return JSONResponse(status_code = status.HTTP_404_NOT_FOUND, content = "User " + user_id + " has no responses for question " + question_id)
+    session.query(UserResponse).filter(UserResponse.user_id == user_id).filter(UserResponse.question_id == question_id).delete()
+    session.commit()
+    return JSONResponse(status_code = status.HTTP_200_OK, content= "Response from user "+user_id+" was deleted sucessfuly for question " + question_id)
+
+
+@router.delete('/marks/{user_id}/{exam_id}')
+async def deleteExamMark(user_id: str, exam_id:str):
+    if not session.query(ExamMark).filter(ExamMark.student_id == user_id).filter(ExamMark.exam_id == exam_id).first():
+        return JSONResponse(status_code = status.HTTP_404_NOT_FOUND, content = "User " + user_id + " has no mark for exam " + exam_id)
+    session.query(ExamMark).filter(ExamMark.student_id == user_id).filter(ExamMark.exam_id == exam_id).delete()
+    session.commit()
+    return JSONResponse(status_code = status.HTTP_200_OK, content= "Mark from user "+user_id+" was deleted sucessfuly for exam " + exam_id)
     
 
 @router.delete('/{exam_id}')
@@ -277,7 +312,7 @@ async def deleteExam(exam_id: str):
 
 
 @router.delete('/questions/{question_id}')
-async def deleteExam(question_id: str):
+async def deleteQuestion(question_id: str):
     if not session.query(ExamQuestion).filter(ExamQuestion.question_id == question_id).first():
         return JSONResponse (status_code = status.HTTP_404_NOT_FOUND, content = "Question with ID " + question_id + " does not exist in the database.")
     session.query(ChoiceResponse).filter(ChoiceResponse.question_id == question_id).delete()
@@ -285,4 +320,73 @@ async def deleteExam(question_id: str):
     session.query(ExamQuestion).filter(ExamQuestion.question_id == question_id).delete()
     session.commit()
     return JSONResponse(status_code = status.HTTP_200_OK, content = "Question with ID " + question_id + " has been correctly deleted.")
+
+
+@router.post('/{exam_id}/add_question')
+async def addQuestion(exam_id: str , question: questionsContent):
+    question_id = str(uuid.uuid4())
+    try:
+        session.add(
+            ExamQuestion(
+                exam_id = exam_id, 
+                question_id = question_id, 
+                question_type = question.question_type, 
+                question_content = question.question_content
+            )
+        )
+        session.commit()
+    except Exception as e:
+        return JSONResponse(status_code = status.HTTP_400_BAD_REQUEST, content = 'Exception raised when creating question: ' + str(e))
+    if question.choice_responses != None:
+        num_choices_correct = 0
+        for choice_response in question.choice_responses:
+            if choice_response.correct == 'Y':
+                num_choices_correct += 1
+            try:
+                if num_choices_correct > 1 and (question.question_type == 'VOF' or question.question_type == 'SC'):
+                    raise Exception('Incorrect quantity of correct responses in VOF or SC.')
+
+                if len(question.choice_responses) != 2 and question.question_type == 'VOF': 
+                    raise Exception("True or False question has more than 2 possible options.")
+            
+                session.add(
+                    ChoiceResponse(
+                        question_id = question_id,
+                        choice_number = choice_response.number,
+                        choice_content = choice_response.content,
+                        correct = choice_response.correct
+                    )
+                )
+                session.commit()
+            except Exception as e:
+                session.rollback()
+                session.query(ChoiceResponse).filter(ChoiceResponse.question_id == question_id).delete()
+                session.commit()
+                session.query(ExamQuestion).filter(ExamQuestion.question_id == question_id).delete()
+                session.commit()
+                return JSONResponse(status_code = status.HTTP_400_BAD_REQUEST, content = 'Exception raised when creating choice response: ' + str(e))
+        if num_choices_correct == 0:
+            session.rollback()
+            session.query(ChoiceResponse).filter(ChoiceResponse.question_id == question_id).delete()
+            session.commit()
+            session.query(ExamQuestion).filter(ExamQuestion.question_id == question_id).delete()
+            session.commit()
+            return JSONResponse(status_Code = status.HTTP_400_BAD_REQUEST, content = 'Choice answers with no correct answer has been found.')
+    return JSONResponse(status_code = status.HTTP_200_OK, content = {"question_id": question_id, "exam_id": exam_id})
+
+
+@router.post('/{exam_id}/qualify/{user_id}')
+async def qualifyExam(user_id: str, exam_id: str, mark: float, comments: str):
+    if not session.query(Exam).filter(Exam.exam_id == exam_id).first():
+        return JSONResponse(status_code = status.HTTP_404_NOT_FOUND, content = "Exam with id " + exam_id + " does not exist in the database." )
+    if mark < 0 or mark > 10:
+        return JSONResponse(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, content = "Mark must be a float between 0 and 10")
+    if session.query(ExamMark).filter(ExamMark.student_id == user_id).filter(ExamMark.exam_id == exam_id).first() != None:
+        return JSONResponse(status_code = status.HTTP_400_BAD_REQUEST, content = "Student " + user_id + " has been already graded in this exam.")
+    session.add(ExamMark(exam_id = exam_id, student_id = user_id, mark = mark, comments = comments))
+    try:
+        session.commit()
+    except Exception as e:
+        return JSONResponse(status_code = status.HTTP_403_FORBIDDEN, content = "Exception raised when commiting mark into database: " + str(e))
+    return JSONResponse(status_code = status.HTTP_201_CREATED, content = "Student " + user_id + " was graded with " + str(mark) + " in exam " + exam_id + " correctly.")
 

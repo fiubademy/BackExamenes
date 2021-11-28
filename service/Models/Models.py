@@ -43,6 +43,7 @@ class questionsContent(BaseModel):
 class Exam(Base):
     __tablename__ = "exams"
     exam_id = Column(String, primary_key = True, nullable = False)
+    exam_title = Column(String, nullable = False)
     course_id = Column(String, nullable = False)
     exam_date = Column(DateTime, nullable = False)
 
@@ -84,3 +85,4 @@ class ExamMark(Base):
     exam_id = Column(String, ForeignKey('exams.exam_id'), primary_key = True, nullable = False)
     student_id = Column(String, primary_key = True, nullable = False)
     mark = Column(Float, nullable = False)
+    comments = Column(String)
