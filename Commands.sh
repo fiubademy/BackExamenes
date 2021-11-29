@@ -1,1 +1,1 @@
-python3 ExamsService.py
+python3 baseService/ExamsService.py

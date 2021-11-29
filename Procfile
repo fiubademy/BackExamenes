@@ -1,1 +1,1 @@
-web: uvicorn service.ExamsService:app --host=0.0.0.0 --port=${PORT:-5001}
+web: uvicorn service.baseService.ExamsService:app --host=0.0.0.0 --port=${PORT:-5001}
