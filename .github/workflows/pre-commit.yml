@@ -30,3 +30,10 @@ jobs:
       - name: Test with pytest
         run: |
           pytest
+      - name: Generate Report
+      run: |
+        pip install pytest-cov
+        pytest --cov -m unittest
+      - name: Upload Coverage to Codecov
+        uses: codecov/codecov-action@v1
+        with:

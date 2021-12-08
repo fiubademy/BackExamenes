@@ -295,6 +295,67 @@ def test_hand_in_question_student():
     client.delete('/exams/responses/USUARIO/'+question_id)
     client.delete('/exams/'+content['exam_id'])
 
+def test_redo_exam_student():
+    response = client.post(
+        '/exams/create_exam/id_curso?examDate=2022-12-02T21:33:33&examTitle=TituloExamen',
+        data = '[{"question_type": "DES", "question_content": "Pregunta 1"}]')
+    assert response.status_code == status.HTTP_200_OK
+    content = response.json()
+    question_id = client.get('/exams/'+content['exam_id']+'/questions').json()
+    question_id = question_id[0]['QuestionID']
+    response_hand_in = client.post(
+        '/exams/'+content['exam_id']+'/answer/'+question_id+'?user_id=USUARIO&response_content=desarrollo_totalmente_completo'
+    )
+    assert response_hand_in.status_code == 200
+    response_hand_in = response_hand_in.json()
+    assert response_hand_in['exam_id'] == content['exam_id']
+    assert response_hand_in['question_id'] == question_id
+    assert response_hand_in['response_content'] == 'desarrollo_totalmente_completo'
+    assert response_hand_in['choice_number'] == None
+    response_mark = client.post(
+        '/exams/'+response_hand_in['exam_id']+'/qualify/USUARIO?mark=2&comments=Desaprobado. Todo mal.');
+    assert response_mark.status_code == 201
+    response_hand_in = client.post(
+        '/exams/'+content['exam_id']+'/answer/'+question_id+'?user_id=USUARIO&response_content=Un desarrollo distinto'
+    )
+    assert response_hand_in.status_code == 200
+    response_hand_in = response_hand_in.json()
+    assert response_hand_in['exam_id'] == content['exam_id']
+    assert response_hand_in['question_id'] == question_id
+    assert response_hand_in['response_content'] == 'Un desarrollo distinto'
+    assert response_hand_in['choice_number'] == None
+    response_mark = client.post(
+        '/exams/'+response_hand_in['exam_id']+'/qualify/USUARIO?mark=10&comments=Muy buen desarrollo.');
+    assert response_mark.status_code == 201
+    client.delete('/exams/responses/USUARIO/'+question_id)
+    client.delete('/exams/marks/USUARIO/'+response_hand_in['exam_id'])
+    client.delete('/exams/'+content['exam_id'])
+
+
+def test_redo_exam_student_without_being_graded_previously_should_fail():
+    response = client.post(
+        '/exams/create_exam/id_curso?examDate=2022-12-02T21:33:33&examTitle=TituloExamen',
+        data = '[{"question_type": "DES", "question_content": "Pregunta 1"}]')
+    assert response.status_code == status.HTTP_200_OK
+    content = response.json()
+    question_id = client.get('/exams/'+content['exam_id']+'/questions').json()
+    question_id = question_id[0]['QuestionID']
+    response_hand_in = client.post(
+        '/exams/'+content['exam_id']+'/answer/'+question_id+'?user_id=USUARIO&response_content=desarrollo_totalmente_completo'
+    )
+    assert response_hand_in.status_code == 200
+    response_hand_in = response_hand_in.json()
+    assert response_hand_in['exam_id'] == content['exam_id']
+    assert response_hand_in['question_id'] == question_id
+    assert response_hand_in['response_content'] == 'desarrollo_totalmente_completo'
+    assert response_hand_in['choice_number'] == None
+    response_hand_in = client.post(
+        '/exams/'+content['exam_id']+'/answer/'+question_id+'?user_id=USUARIO&response_content=Un desarrollo distinto'
+    )
+    assert response_hand_in.status_code == 403
+    client.delete('/exams/responses/USUARIO/'+question_id)
+    client.delete('/exams/'+content['exam_id'])
+
 
 def test_get_user_response_for_question():
     response = client.post(
@@ -365,4 +426,64 @@ def test_exam_qualification_with_mark_not_valid():
     assert response_qualification.status_code == 422
     response_qualification = client.post('/exams/'+content['exam_id']+'/qualify/MARKMAYORDIEZO?mark=11.33&comments=muy buena resolucion')
     assert response_qualification.status_code == 422
+    client.delete('/exams/'+content['exam_id'])
+
+
+def test_user_is_able_to_do_exam():
+    response = client.get('/exams/idexamen/is_able_to_do_exam/USUARIO')
+    assert response.status_code == 200
+    assert response.json() == True
+
+def test_user_is_able_to_redo_exam():
+    response = client.post(
+        '/exams/create_exam/id_curso?examDate=2022-12-02T21:33:33&examTitle=TituloExamen',
+        data = '[{"question_type": "DES", "question_content": "Pregunta 1"}]')
+    assert response.status_code == status.HTTP_200_OK
+    content = response.json()
+
+    response = client.get('/exams/'+content['exam_id']+'/is_able_to_do_exam/USUARIO')
+    assert response.status_code == 200
+    assert response.json() == True
+
+    question_id = client.get('/exams/'+content['exam_id']+'/questions').json()
+    question_id = question_id[0]['QuestionID']
+    response_hand_in = client.post(
+        '/exams/'+content['exam_id']+'/answer/'+question_id+'?user_id=USUARIO&response_content=desarrollo_totalmente_completo'
+    ).json()
+    response_mark = client.post(
+        '/exams/'+response_hand_in['exam_id']+'/qualify/USUARIO?mark=2&comments=Desaprobado. Todo mal.');
+    assert response_mark.status_code == 201
+
+    response = client.get('/exams/'+content['exam_id']+'/is_able_to_do_exam/USUARIO')
+    assert response.status_code == 200
+    assert response.json() == True
+
+    client.delete('/exams/responses/USUARIO/'+question_id)
+    client.delete('/exams/marks/USUARIO/'+response_hand_in['exam_id'])
+    client.delete('/exams/'+content['exam_id'])
+
+
+def test_user_is_not_able_to_redo_exam():
+
+    response = client.post(
+        '/exams/create_exam/id_curso?examDate=2022-12-02T21:33:33&examTitle=TituloExamen',
+        data = '[{"question_type": "DES", "question_content": "Pregunta 1"}]')
+    assert response.status_code == status.HTTP_200_OK
+    content = response.json()
+
+    response = client.get('/exams/'+content['exam_id']+'/is_able_to_do_exam/USUARIO')
+    assert response.status_code == 200
+    assert response.json() == True
+
+    question_id = client.get('/exams/'+content['exam_id']+'/questions').json()
+    question_id = question_id[0]['QuestionID']
+    response_hand_in = client.post(
+        '/exams/'+content['exam_id']+'/answer/'+question_id+'?user_id=USUARIO&response_content=desarrollo_totalmente_completo'
+    )
+
+    response = client.get('/exams/'+content['exam_id']+'/is_able_to_do_exam/USUARIO')
+    assert response.status_code == 406
+    assert response.json() == False
+
+    client.delete('/exams/responses/USUARIO/'+question_id)
     client.delete('/exams/'+content['exam_id'])
