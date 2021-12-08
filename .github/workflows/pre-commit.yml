@@ -33,7 +33,7 @@ jobs:
       - name: Generate Report
       run: |
         pip install pytest-cov
-        pytest --cov -m unittest
+        pytest --cov --cov-report=xml
       - name: Upload Coverage to Codecov
         uses: codecov/codecov-action@v1
         with:
