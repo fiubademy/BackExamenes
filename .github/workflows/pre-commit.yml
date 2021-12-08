@@ -30,3 +30,11 @@ jobs:
       - name: Test with pytest
         run: |
           pytest
+      - name: Generate Report
+        run: |
+          pip install pytest-cov
+          pytest --cov --cov-report=xml
+      - name: Upload Coverage to Codecov
+        uses: codecov/codecov-action@v1
+        with:
+          token: d4790812-6268-4d57-9e96-f00d9be7e347

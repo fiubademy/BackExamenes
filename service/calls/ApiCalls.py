@@ -258,6 +258,16 @@ async def postAnswersExam(exam_id:str , question_id: str, user_id:str, response_
         return JSONResponse(status_code = status.HTTP_422_VALIDATION_ERROR, content = "Response Content and Choice Number can not have a value together.")
     retorno_content = response_content
     retorno_choice_num = choice_number
+    if session.query(UserResponse).filter(UserResponse.exam_id == exam_id).filter(UserResponse.question_id == question_id).filter(
+        UserResponse.user_id == user_id).first() != None: 
+            if session.query(ExamMark).filter(ExamMark.student_id == user_id and ExamMark.exam_id == exam_id).first() != None:
+                # The user is redoing the exam because his previous try has been already corrected and he is answering again.
+                session.query(UserResponse).filter(UserResponse.exam_id == exam_id).filter(UserResponse.user_id == user_id).delete()
+                session.query(ExamMark).filter(ExamMark.exam_id == exam_id).filter(ExamMark.student_id == user_id).delete()
+                session.commit()
+            else:
+                return JSONResponse(status_code = status.HTTP_403_FORBIDDEN, content = "User has already responded to this exam and has yet not been graded.")
+        
     try:
         if response_content == None:
             response_content = null()
@@ -389,4 +399,14 @@ async def qualifyExam(user_id: str, exam_id: str, mark: float, comments: str):
     except Exception as e:
         return JSONResponse(status_code = status.HTTP_403_FORBIDDEN, content = "Exception raised when commiting mark into database: " + str(e))
     return JSONResponse(status_code = status.HTTP_201_CREATED, content = "Student " + user_id + " was graded with " + str(mark) + " in exam " + exam_id + " correctly.")
+
+
+@router.get('/{exam_id}/is_able_to_do_exam/{user_id}')
+async def is_able_to_do_exam(exam_id: str, user_id: str):
+    if session.query(UserResponse).filter(UserResponse.exam_id == exam_id).filter(UserResponse.user_id == user_id).first() != None: 
+        if session.query(ExamMark).filter(ExamMark.student_id == user_id and ExamMark.exam_id == exam_id).first() == None:
+            return JSONResponse(status_code = status.HTTP_406_NOT_ACCEPTABLE, content=False)
+        else:
+            return JSONResponse(status_code = status.HTTP_200_OK, content=True)
+    return JSONResponse(status_code = status.HTTP_200_OK, content = True)
 
