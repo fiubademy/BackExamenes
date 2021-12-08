@@ -39,12 +39,10 @@ jobs:
     - uses: checkout@v2
       with:
         fetch-depth: ‘2’
-
     - name: Setup Python
       uses: actions/setup-python@master
       with:
         python-version: [3.9]
-    
       - name: Generate Report
       run: |
         pip install pytest-cov
