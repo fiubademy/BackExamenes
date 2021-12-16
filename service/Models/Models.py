@@ -46,6 +46,7 @@ class Exam(Base):
     exam_title = Column(String, nullable = False)
     course_id = Column(String, nullable = False)
     exam_date = Column(DateTime, nullable = False)
+    status = Column(String, nullable = False)
 
 
 class ExamQuestion(Base):
