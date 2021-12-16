@@ -25,6 +25,37 @@ def test_create_exam():
     assert content['course_id'] == 'id_curso'
     assert content['exam_date'] == "02/12/22 21:33"
     client.delete('/exams/'+exam_id)
+
+
+def test_create_exam_without_questions_initially():
+    response = client.post(
+        '/exams/create_exam/id_curso?examDate=2022-12-02T21:33:33&examTitle=TituloExamen'
+    )
+    assert response.status_code == status.HTTP_200_OK
+    content = response.json()
+    exam_id = content['exam_id']
+    assert content['course_id'] == 'id_curso'
+    assert content['exam_date'] == "02/12/22 21:33"
+    client.delete('/exams/'+exam_id)
+
+
+def test_publish_exam():
+    response = client.post(
+        '/exams/create_exam/id_curso?examDate=2022-12-02T21:33:33&examTitle=TituloExamen',
+        data = '[{"question_type": "DES", "question_content": "Pregunta 1"}]'
+    )
+    assert response.status_code == status.HTTP_200_OK
+    content = response.json()
+    exam_id = content['exam_id']
+    assert content['course_id'] == 'id_curso'
+    assert content['exam_date'] == "02/12/22 21:33"
+    response = client.patch(
+        '/exams/' + exam_id + '/publish'
+    )
+    assert response.status_code == 200
+    response = client.get('/exams/'+exam_id)
+    assert response.json()['Status'] == 'PUBLISHED'
+    client.delete('/exams/'+exam_id)
     
 
 def test_create_various_exams_in_same_course():
@@ -54,6 +85,7 @@ def test_get_exam_by_id():
     assert content_get['ExamID'] == content_post['exam_id']
     assert content_get['Date'] == content_post['exam_date']
     assert content_get['ExamTitle'] == content_post['ExamTitle']
+    assert content_get['Status'] == 'EDITION'
     client.delete('/exams/'+content_get['ExamID'])
 
 
@@ -74,6 +106,7 @@ def test_get_exam_by_course():
     assert content_get[0]['CourseID'] == content_post['course_id']
     assert content_get[0]['ExamID'] == content_post['exam_id']
     assert content_get[0]['Date'] == content_post['exam_date']
+    assert content_get[0]['Status'] == 'EDITION'
     client.delete('/exams/'+content_get[0]['ExamID'])
 
 
