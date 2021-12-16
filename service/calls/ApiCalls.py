@@ -49,7 +49,8 @@ async def getExamByCourses(course_id: str):
                 'ExamID': exam.exam_id, 
                 'CourseID': exam.course_id,
                 'Date': exam.exam_date.strftime('%d/%m/%y %H:%M'),
-                'ExamTitle': exam.exam_title
+                'ExamTitle': exam.exam_title,
+                'Status': exam.status
             }
         )
     return JSONResponse(
@@ -72,7 +73,8 @@ async def getExamById(exam_id: str):
                 'ExamID': exam.exam_id, 
                 'CourseID': exam.course_id,
                 'Date': exam.exam_date.strftime('%d/%m/%y %H:%M'),
-                'ExamTitle': exam.exam_title
+                'ExamTitle': exam.exam_title,
+                'Status': exam.status
             }
     )
 
@@ -90,10 +92,10 @@ def rollback_exam_creation(exam_id):
 
 
 @router.post('/create_exam/{course_id}')
-async def createExam(course_id: str, questionsList: List[questionsContent], examDate: datetime, examTitle: str):
+async def createExam(course_id: str, questionsList: Optional[List[questionsContent]], examDate: datetime, examTitle: str):
     exam_id = str(uuid.uuid4())
     try:
-        session.add(Exam(exam_id = exam_id, course_id = course_id, exam_date = examDate, exam_title = examTitle))
+        session.add(Exam(exam_id = exam_id, course_id = course_id, exam_date = examDate, exam_title = examTitle, status='EDITION'))
         session.commit()
     except Exception as e:
         session.rollback()
@@ -204,6 +206,8 @@ async def editExam(exam_id:str, exam_date:datetime = None, exam_title: str = Non
     exam = session.query(Exam).filter(Exam.exam_id == exam_id).first()
     if not exam:
         return JSONResponse(status_code = status.HTTP_404_NOT_FOUND, content = "Exam with ID " + exam_id + " was not found in the database.")
+    if exam.status != 'EDITION':
+        return JSONResponse(status_code = status.HTTP_403_FORBIDDEN, content = "Exam is currently not in edition status and cannot be edited.")
     if exam_date != None:
         exam.exam_date = exam_date
     if exam_title != None:
@@ -230,6 +234,9 @@ async def editExamQuestions(question_id:str, question_content: questionsContent)
     question = session.query(ExamQuestion).filter(ExamQuestion.question_id == question_id).first()
     if not question:
         return JSONResponse(status_code = status.HTTP_404_NOT_FOUND, content = "Question with id " + question_id + " does not exist in the database.")
+    exam = session.query(Exam).filter(Exam.exam_id == question.exam_id).first()
+    if exam.status != 'EDITION':
+        return JSONResponse(status_code = status.HTTP_403_FORBIDDEN, content = "Exam is currently not in edition status and cannot be edited.")
     if question_content.question_type == 'DES':
         session.query(ChoiceResponse).filter(ChoiceResponse.question_id == question_id).delete()
         session.commit()
@@ -323,8 +330,12 @@ async def deleteExam(exam_id: str):
 
 @router.delete('/questions/{question_id}')
 async def deleteQuestion(question_id: str):
-    if not session.query(ExamQuestion).filter(ExamQuestion.question_id == question_id).first():
+    question = session.query(ExamQuestion).filter(ExamQuestion.question_id == question_id).first()
+    if not question:
         return JSONResponse (status_code = status.HTTP_404_NOT_FOUND, content = "Question with ID " + question_id + " does not exist in the database.")
+    exam = session.query(Exam).filter(Exam.exam_id == question.exam_id).first()
+    if exam.status != 'EDITION':
+        return JSONResponse(status_code = status.HTTP_403_FORBIDDEN, content = "Exam is currently not in edition status and cannot be edited.")
     session.query(ChoiceResponse).filter(ChoiceResponse.question_id == question_id).delete()
     session.commit()
     session.query(ExamQuestion).filter(ExamQuestion.question_id == question_id).delete()
@@ -334,6 +345,9 @@ async def deleteQuestion(question_id: str):
 
 @router.post('/{exam_id}/add_question')
 async def addQuestion(exam_id: str , question: questionsContent):
+    exam = session.query(Exam).filter(Exam.exam_id == exam_id).first()
+    if exam.status != 'EDITION':
+        return JSONResponse(status_code = status.HTTP_403_FORBIDDEN, content = "Exam is currently not in edition status and cannot be edited.")
     question_id = str(uuid.uuid4())
     try:
         session.add(
@@ -410,3 +424,13 @@ async def is_able_to_do_exam(exam_id: str, user_id: str):
             return JSONResponse(status_code = status.HTTP_200_OK, content=True)
     return JSONResponse(status_code = status.HTTP_200_OK, content = True)
 
+
+@router.patch('/{exam_id}/publish')
+async def publish_exam(exam_id: str):
+    exam = session.query(Exam).filter(Exam.exam_id == exam_id).first()
+    if not exam:
+        return JSONResponse(status_code = status.HTTP_404_NOT_FOUND, content = "Exam with id " + exam_id + " does not exist in the database." )
+    exam.status = 'PUBLISHED'
+    session.add(exam)
+    session.commit()
+    return JSONResponse(status_code= status.HTTP_200_OK, content= "Exam with id" + exam_id + " was correctly published")
