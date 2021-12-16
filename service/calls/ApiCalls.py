@@ -92,7 +92,7 @@ def rollback_exam_creation(exam_id):
 
 
 @router.post('/create_exam/{course_id}')
-async def createExam(course_id: str, questionsList: Optional[List[questionsContent]], examDate: datetime, examTitle: str):
+async def createExam(course_id: str, examDate: datetime, examTitle: str, questionsList: Optional[List[questionsContent]] = None):
     exam_id = str(uuid.uuid4())
     try:
         session.add(Exam(exam_id = exam_id, course_id = course_id, exam_date = examDate, exam_title = examTitle, status='EDITION'))
@@ -100,48 +100,49 @@ async def createExam(course_id: str, questionsList: Optional[List[questionsConte
     except Exception as e:
         session.rollback()
         return JSONResponse(status_code = status.HTTP_400_BAD_REQUEST, content = 'Exception raised when creating exam: ' + str(e))
-    for question in questionsList:
-        question_id = str(uuid.uuid4())
-        try:
-            session.add(
-                ExamQuestion(
-                    exam_id = exam_id, 
-                    question_id = question_id, 
-                    question_type = question.question_type, 
-                    question_content = question.question_content
-                )
-            )
-            session.commit()
-        except Exception as e:
-            rollback_exam_creation(exam_id)
-            return JSONResponse(status_code = status.HTTP_400_BAD_REQUEST, content = 'Exception raised when creating question: ' + str(e))
-        if question.choice_responses != None:
-            #num_choices_correct = 0
-            for choice_response in question.choice_responses:
-                #if choice_response.correct == 'Y':
-                #    num_choices_correct += 1
-                try:
-                    #if num_choices_correct > 1 and (question.question_type == 'VOF' or question.question_type == 'SC'):
-                    #    raise Exception('Incorrect quantity of correct responses in VOF or SC.')
-
-                    if len(question.choice_responses) != 2 and question.question_type == 'VOF': 
-                        raise Exception("True or False question has more than 2 possible options.")
-                
-                    session.add(
-                        ChoiceResponse(
-                            question_id = question_id,
-                            choice_number = choice_response.number,
-                            choice_content = choice_response.content
-                            #correct = choice_response.correct
-                        )
+    if questionsList != None:
+        for question in questionsList:
+            question_id = str(uuid.uuid4())
+            try:
+                session.add(
+                    ExamQuestion(
+                        exam_id = exam_id, 
+                        question_id = question_id, 
+                        question_type = question.question_type, 
+                        question_content = question.question_content
                     )
-                    session.commit()
-                except Exception as e:
-                    rollback_exam_creation(exam_id)
-                    return JSONResponse(status_code = status.HTTP_400_BAD_REQUEST, content = 'Exception raised when creating choice response: ' + str(e))
-            #if num_choices_correct == 0:
-            #     rollback_exam_creation(exam_id)
-            #     return JSONResponse(status_Code = status.HTTP_400_BAD_REQUEST, content = 'Choice answers with no correct answer has been found.')
+                )
+                session.commit()
+            except Exception as e:
+                rollback_exam_creation(exam_id)
+                return JSONResponse(status_code = status.HTTP_400_BAD_REQUEST, content = 'Exception raised when creating question: ' + str(e))
+            if question.choice_responses != None:
+                #num_choices_correct = 0
+                for choice_response in question.choice_responses:
+                    #if choice_response.correct == 'Y':
+                    #    num_choices_correct += 1
+                    try:
+                        #if num_choices_correct > 1 and (question.question_type == 'VOF' or question.question_type == 'SC'):
+                        #    raise Exception('Incorrect quantity of correct responses in VOF or SC.')
+
+                        if len(question.choice_responses) != 2 and question.question_type == 'VOF': 
+                            raise Exception("True or False question has more than 2 possible options.")
+                    
+                        session.add(
+                            ChoiceResponse(
+                                question_id = question_id,
+                                choice_number = choice_response.number,
+                                choice_content = choice_response.content
+                                #correct = choice_response.correct
+                            )
+                        )
+                        session.commit()
+                    except Exception as e:
+                        rollback_exam_creation(exam_id)
+                        return JSONResponse(status_code = status.HTTP_400_BAD_REQUEST, content = 'Exception raised when creating choice response: ' + str(e))
+                #if num_choices_correct == 0:
+                #     rollback_exam_creation(exam_id)
+                #     return JSONResponse(status_Code = status.HTTP_400_BAD_REQUEST, content = 'Choice answers with no correct answer has been found.')
     return JSONResponse(status_code = status.HTTP_200_OK, content = {"exam_id":exam_id, "course_id":course_id, "exam_date": examDate.strftime('%d/%m/%y %H:%M'), 'ExamTitle': examTitle})
 
 
