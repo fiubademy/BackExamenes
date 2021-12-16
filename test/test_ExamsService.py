@@ -111,8 +111,8 @@ def test_get_questions():
                 '{"question_type": "DES", "question_content": "Pregunta 1"},'+
                 '{"question_type": "VOF", "question_content": "Verd o Fal", '+
                     '"choice_responses": ['+
-                        '{"number": 0, "content": "ASD", "correct": "Y"},'+
-                        '{"number": 1, "content": "Wepa", "correct": "N"}'+
+                        '{"number": 0, "content": "ASD"},'+
+                        '{"number": 1, "content": "Wepa"}'+
                     ']'
                 '}'+
             ']'
@@ -130,10 +130,8 @@ def test_get_questions():
     assert questions_got[1]['ExamID'] == content_post['exam_id']
     assert questions_got[1]['ChoiceOptions'][0]['Number'] == 0
     assert questions_got[1]['ChoiceOptions'][0]['Content'] == 'ASD'
-    assert questions_got[1]['ChoiceOptions'][0]['Correct'] == 'Y'
     assert questions_got[1]['ChoiceOptions'][1]['Number'] == 1
     assert questions_got[1]['ChoiceOptions'][1]['Content'] == 'Wepa'
-    assert questions_got[1]['ChoiceOptions'][1]['Correct'] == 'N'
     client.delete('/exams/'+content_post['exam_id'])
 
 
@@ -166,8 +164,8 @@ def test_delete_question():
                 '{"question_type": "DES", "question_content": "Pregunta 1"},'+
                 '{"question_type": "VOF", "question_content": "Verd o Fal", '+
                     '"choice_responses": ['+
-                        '{"number": 0, "content": "ASD", "correct": "Y"},'+
-                        '{"number": 1, "content": "Wepa", "correct": "N"}'+
+                        '{"number": 0, "content": "ASD"},'+
+                        '{"number": 1, "content": "Wepa"}'+
                     ']'
                 '}'+
             ']'
@@ -227,9 +225,9 @@ def test_edit_question():
                 '"question_type": "MC", '+
                 '"question_content": "Mult Choice", '+
                 '"choice_responses": ['+
-                    '{"number": 0, "content": "Choice #1", "correct": "Y"},'+
-                    '{"number": 1, "content": "Choice #2", "correct": "N"},'+
-                    '{"number": 2, "content": "Choice #3", "correct": "Y"}'+
+                    '{"number": 0, "content": "Choice #1"},'+
+                    '{"number": 1, "content": "Choice #2"},'+
+                    '{"number": 2, "content": "Choice #3"}'+
                 ']'
             '}'
     )
@@ -246,14 +244,11 @@ def test_edit_question():
     assert next_questions[0]['QuestionType'] == 'MC'
     assert next_questions[0]['ExamID'] == content['exam_id']
     assert next_questions[0]['ChoiceOptions'][0]['Number'] == 0
-    assert next_questions[0]['ChoiceOptions'][0]['Correct'] == 'Y'
     assert next_questions[0]['ChoiceOptions'][0]['Content'] == 'Choice #1'
     assert next_questions[0]['ChoiceOptions'][1]['Number'] == 1
     assert next_questions[0]['ChoiceOptions'][1]['Content'] == 'Choice #2'
-    assert next_questions[0]['ChoiceOptions'][1]['Correct'] == 'N'
     assert next_questions[0]['ChoiceOptions'][2]['Number'] == 2
     assert next_questions[0]['ChoiceOptions'][2]['Content'] == 'Choice #3'
-    assert next_questions[0]['ChoiceOptions'][2]['Correct'] ==  'Y'
     client.delete('/exams/'+content['exam_id'])
 
 
@@ -266,9 +261,9 @@ def test_edit_question_not_existent():
                 '"question_type": "MC", '+
                 '"question_content": "Mult Choice", '+
                 '"choice_responses": ['+
-                    '{"number": 0, "content": "Choice #1", "correct": "Y"},'+
-                    '{"number": 1, "content": "Choice #2", "correct": "N"},'+
-                    '{"number": 2, "content": "Choice #3", "correct": "Y"}'+
+                    '{"number": 0, "content": "Choice #1"},'+
+                    '{"number": 1, "content": "Choice #2"},'+
+                    '{"number": 2, "content": "Choice #3"}'+
                 ']'
             '}'
     )
