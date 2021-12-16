@@ -116,13 +116,13 @@ async def createExam(course_id: str, questionsList: Optional[List[questionsConte
             rollback_exam_creation(exam_id)
             return JSONResponse(status_code = status.HTTP_400_BAD_REQUEST, content = 'Exception raised when creating question: ' + str(e))
         if question.choice_responses != None:
-            num_choices_correct = 0
+            #num_choices_correct = 0
             for choice_response in question.choice_responses:
-                if choice_response.correct == 'Y':
-                    num_choices_correct += 1
+                #if choice_response.correct == 'Y':
+                #    num_choices_correct += 1
                 try:
-                    if num_choices_correct > 1 and (question.question_type == 'VOF' or question.question_type == 'SC'):
-                        raise Exception('Incorrect quantity of correct responses in VOF or SC.')
+                    #if num_choices_correct > 1 and (question.question_type == 'VOF' or question.question_type == 'SC'):
+                    #    raise Exception('Incorrect quantity of correct responses in VOF or SC.')
 
                     if len(question.choice_responses) != 2 and question.question_type == 'VOF': 
                         raise Exception("True or False question has more than 2 possible options.")
@@ -131,17 +131,17 @@ async def createExam(course_id: str, questionsList: Optional[List[questionsConte
                         ChoiceResponse(
                             question_id = question_id,
                             choice_number = choice_response.number,
-                            choice_content = choice_response.content,
-                            correct = choice_response.correct
+                            choice_content = choice_response.content
+                            #correct = choice_response.correct
                         )
                     )
                     session.commit()
                 except Exception as e:
                     rollback_exam_creation(exam_id)
                     return JSONResponse(status_code = status.HTTP_400_BAD_REQUEST, content = 'Exception raised when creating choice response: ' + str(e))
-            if num_choices_correct == 0:
-                 rollback_exam_creation(exam_id)
-                 return JSONResponse(status_Code = status.HTTP_400_BAD_REQUEST, content = 'Choice answers with no correct answer has been found.')
+            #if num_choices_correct == 0:
+            #     rollback_exam_creation(exam_id)
+            #     return JSONResponse(status_Code = status.HTTP_400_BAD_REQUEST, content = 'Choice answers with no correct answer has been found.')
     return JSONResponse(status_code = status.HTTP_200_OK, content = {"exam_id":exam_id, "course_id":course_id, "exam_date": examDate.strftime('%d/%m/%y %H:%M'), 'ExamTitle': examTitle})
 
 
@@ -160,7 +160,7 @@ async def getQuestionsForExam(exam_id: str):
                     {
                         "Number": choice.choice_number,
                         "Content": choice.choice_content,
-                        "Correct": choice.correct
+                        #"Correct": choice.correct
                     }
                 )
             return_message.append(
@@ -223,12 +223,12 @@ async def editExamQuestions(question_id:str, question_content: questionsContent)
     if question_content.question_type != 'DES' and not question_content.choice_responses:
         return JSONResponse(status_code = status.HTTP_400_BAD_REQUEST, content = "Can not send a question different of DES without choice options...")
     elif question_content.question_type != 'DES' and question_content.choice_responses != None:     
-        num_choices_correct = 0
-        for choice_response in question_content.choice_responses:
-            if choice_response.correct == 'Y':
-                num_choices_correct += 1
-        if num_choices_correct > 1 and (question_content.question_type == 'VOF' or question_content.question_type == 'SC'):
-            return JSONResponse(status_code = status.HTTP_400_BAD_REQUEST, content = 'Incorrect quantity of correct responses in VOF or SC. Must be only one')
+        #num_choices_correct = 0
+        #for choice_response in question_content.choice_responses:
+            #if choice_response.correct == 'Y':
+            #    num_choices_correct += 1
+        #if num_choices_correct > 1 and (question_content.question_type == 'VOF' or question_content.question_type == 'SC'):
+        #    return JSONResponse(status_code = status.HTTP_400_BAD_REQUEST, content = 'Incorrect quantity of correct responses in VOF or SC. Must be only one')
         if len(question_content.choice_responses) != 2 and question_content.question_type == 'VOF': 
             return JSONResponse(status_code = status.HTTP_400_BAD_REQUEST, content = "True or False question has more than 2 possible options.")
     question = session.query(ExamQuestion).filter(ExamQuestion.question_id == question_id).first()
@@ -237,9 +237,9 @@ async def editExamQuestions(question_id:str, question_content: questionsContent)
     exam = session.query(Exam).filter(Exam.exam_id == question.exam_id).first()
     if exam.status != 'EDITION':
         return JSONResponse(status_code = status.HTTP_403_FORBIDDEN, content = "Exam is currently not in edition status and cannot be edited.")
-    if question_content.question_type == 'DES':
-        session.query(ChoiceResponse).filter(ChoiceResponse.question_id == question_id).delete()
-        session.commit()
+    #if question_content.question_type == 'DES':
+    session.query(ChoiceResponse).filter(ChoiceResponse.question_id == question_id).delete()
+    session.commit()
     question.question_type = question_content.question_type
     question.question_content = question_content.question_content
     for choice_response in question_content.choice_responses:
@@ -248,7 +248,7 @@ async def editExamQuestions(question_id:str, question_content: questionsContent)
                             question_id = question_id,
                             choice_number = choice_response.number,
                             choice_content = choice_response.content,
-                            correct = choice_response.correct
+                            #correct = choice_response.correct
                         )
                     )
     session.commit()
@@ -362,13 +362,13 @@ async def addQuestion(exam_id: str , question: questionsContent):
     except Exception as e:
         return JSONResponse(status_code = status.HTTP_400_BAD_REQUEST, content = 'Exception raised when creating question: ' + str(e))
     if question.choice_responses != None:
-        num_choices_correct = 0
+        #num_choices_correct = 0
         for choice_response in question.choice_responses:
-            if choice_response.correct == 'Y':
-                num_choices_correct += 1
+            #if choice_response.correct == 'Y':
+            #    num_choices_correct += 1
             try:
-                if num_choices_correct > 1 and (question.question_type == 'VOF' or question.question_type == 'SC'):
-                    raise Exception('Incorrect quantity of correct responses in VOF or SC.')
+                #if num_choices_correct > 1 and (question.question_type == 'VOF' or question.question_type == 'SC'):
+                #    raise Exception('Incorrect quantity of correct responses in VOF or SC.')
 
                 if len(question.choice_responses) != 2 and question.question_type == 'VOF': 
                     raise Exception("True or False question has more than 2 possible options.")
@@ -378,7 +378,7 @@ async def addQuestion(exam_id: str , question: questionsContent):
                         question_id = question_id,
                         choice_number = choice_response.number,
                         choice_content = choice_response.content,
-                        correct = choice_response.correct
+                        #correct = choice_response.correct
                     )
                 )
                 session.commit()
@@ -389,13 +389,13 @@ async def addQuestion(exam_id: str , question: questionsContent):
                 session.query(ExamQuestion).filter(ExamQuestion.question_id == question_id).delete()
                 session.commit()
                 return JSONResponse(status_code = status.HTTP_400_BAD_REQUEST, content = 'Exception raised when creating choice response: ' + str(e))
-        if num_choices_correct == 0:
-            session.rollback()
-            session.query(ChoiceResponse).filter(ChoiceResponse.question_id == question_id).delete()
-            session.commit()
-            session.query(ExamQuestion).filter(ExamQuestion.question_id == question_id).delete()
-            session.commit()
-            return JSONResponse(status_Code = status.HTTP_400_BAD_REQUEST, content = 'Choice answers with no correct answer has been found.')
+        #if num_choices_correct == 0:
+        #    session.rollback()
+        #    session.query(ChoiceResponse).filter(ChoiceResponse.question_id == question_id).delete()
+        #    session.commit()
+        #    session.query(ExamQuestion).filter(ExamQuestion.question_id == question_id).delete()
+        #    session.commit()
+        #    return JSONResponse(status_Code = status.HTTP_400_BAD_REQUEST, content = 'Choice answers with no correct answer has been found.')
     return JSONResponse(status_code = status.HTTP_200_OK, content = {"question_id": question_id, "exam_id": exam_id})
 
 

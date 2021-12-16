@@ -31,7 +31,7 @@ class QuestionResponseReturn(BaseModel):
 class OptionForQuestionReturn(BaseModel):
     number: int
     content: str
-    correct: str
+    #correct: str
 
 
 class questionsContent(BaseModel):
@@ -62,10 +62,10 @@ class ChoiceResponse(Base):
     question_id = Column(String, ForeignKey('exams_questions.question_id'), primary_key = True)
     choice_number = Column(Integer, primary_key = True, nullable = False)
     choice_content = Column(String, nullable = False)
-    correct = Column(String, nullable = False)
-    __table_args__ = (
-        CheckConstraint("correct = 'Y' or correct = 'N'"),
-    )
+    #correct = Column(String, nullable = False)
+    #__table_args__ = (
+    #    CheckConstraint("correct = 'Y' or correct = 'N'"),
+    #)
     
 
 class UserResponse(Base):
