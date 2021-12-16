@@ -220,10 +220,6 @@ async def editExam(exam_id:str, exam_date:datetime = None, exam_title: str = Non
 
 @router.patch('/edit_question/{question_id}')
 async def editExamQuestions(question_id:str, question_content: questionsContent):
-    exam_id = session.query(ExamQuestion).filter(ExamQuestion.question_id == question_id).first().exam_id
-    exam = session.query(Exam).filter(Exam.exam_id == exam_id).first()
-    if exam.status != 'EDITION':
-        return JSONResponse(status_code = status.HTTP_403_FORBIDDEN, content = "Exam is currently not in edition status and cannot be edited.")
     if question_content.question_type != 'DES' and not question_content.choice_responses:
         return JSONResponse(status_code = status.HTTP_400_BAD_REQUEST, content = "Can not send a question different of DES without choice options...")
     elif question_content.question_type != 'DES' and question_content.choice_responses != None:     
@@ -238,6 +234,9 @@ async def editExamQuestions(question_id:str, question_content: questionsContent)
     question = session.query(ExamQuestion).filter(ExamQuestion.question_id == question_id).first()
     if not question:
         return JSONResponse(status_code = status.HTTP_404_NOT_FOUND, content = "Question with id " + question_id + " does not exist in the database.")
+    exam = session.query(Exam).filter(Exam.exam_id == question.exam_id).first()
+    if exam.status != 'EDITION':
+        return JSONResponse(status_code = status.HTTP_403_FORBIDDEN, content = "Exam is currently not in edition status and cannot be edited.")
     if question_content.question_type == 'DES':
         session.query(ChoiceResponse).filter(ChoiceResponse.question_id == question_id).delete()
         session.commit()
@@ -332,11 +331,11 @@ async def deleteExam(exam_id: str):
 @router.delete('/questions/{question_id}')
 async def deleteQuestion(question_id: str):
     question = session.query(ExamQuestion).filter(ExamQuestion.question_id == question_id).first()
+    if not question:
+        return JSONResponse (status_code = status.HTTP_404_NOT_FOUND, content = "Question with ID " + question_id + " does not exist in the database.")
     exam = session.query(Exam).filter(Exam.exam_id == question.exam_id).first()
     if exam.status != 'EDITION':
         return JSONResponse(status_code = status.HTTP_403_FORBIDDEN, content = "Exam is currently not in edition status and cannot be edited.")
-    if not question:
-        return JSONResponse (status_code = status.HTTP_404_NOT_FOUND, content = "Question with ID " + question_id + " does not exist in the database.")
     session.query(ChoiceResponse).filter(ChoiceResponse.question_id == question_id).delete()
     session.commit()
     session.query(ExamQuestion).filter(ExamQuestion.question_id == question_id).delete()
