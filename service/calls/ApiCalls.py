@@ -92,7 +92,7 @@ def rollback_exam_creation(exam_id):
 
 
 @router.post('/create_exam/{course_id}')
-async def createExam(course_id: str, questionsList: List[questionsContent], examDate: datetime, examTitle: str):
+async def createExam(course_id: str, questionsList: Optional[List[questionsContent]], examDate: datetime, examTitle: str):
     exam_id = str(uuid.uuid4())
     try:
         session.add(Exam(exam_id = exam_id, course_id = course_id, exam_date = examDate, exam_title = examTitle, status='EDITION'))
