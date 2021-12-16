@@ -426,7 +426,7 @@ async def is_able_to_do_exam(exam_id: str, user_id: str):
 
 
 @router.patch('/{exam_id}/publish')
-async def publish_exam(exam_id):
+async def publish_exam(exam_id: str):
     exam = session.query(Exam).filter(Exam.exam_id == exam_id).first()
     if not exam:
         return JSONResponse(status_code = status.HTTP_404_NOT_FOUND, content = "Exam with id " + exam_id + " does not exist in the database." )
