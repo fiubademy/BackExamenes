@@ -15,7 +15,7 @@ Base.metadata.drop_all(test_engine)
 Base.metadata.create_all(test_engine)
 ApiCalls.set_engine(test_engine)
 
-'''
+
 def test_create_exam():
     response = client.post(
         '/exams/create_exam/id_curso?examDate=2022-12-02T21:33:33&examTitle=TituloExamen',
@@ -579,7 +579,7 @@ def test_user_is_not_able_to_redo_exam():
 
     client.delete('/exams/responses/USUARIO/'+question_id)
     client.delete('/exams/'+content['exam_id'])
-'''
+
 
 def test_get_students_who_answered_an_exam():
     response = client.post(
