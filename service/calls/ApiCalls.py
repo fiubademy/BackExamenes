@@ -35,8 +35,8 @@ def set_engine(engine_rcvd):
     session = Session()
 
 @router.get('/course/{course_id}', status_code = status.HTTP_200_OK)
-async def getExamByCourses(course_id: str):
-    exams = session.query(Exam).filter(Exam.course_id == course_id)
+async def getExamByCourses(course_id: str, exam_status: Optional[str] = ''):
+    exams = session.query(Exam).filter(Exam.course_id == course_id).filter(Exam.status.like('%'+exam_status.upper()+'%'))
     if not exams.first():
         return JSONResponse(
             status_code = status.HTTP_404_NOT_FOUND, 

@@ -15,6 +15,7 @@ Base.metadata.drop_all(test_engine)
 Base.metadata.create_all(test_engine)
 ApiCalls.set_engine(test_engine)
 
+
 def test_create_exam():
     response = client.post(
         '/exams/create_exam/id_curso?examDate=2022-12-02T21:33:33&examTitle=TituloExamen',
@@ -108,6 +109,44 @@ def test_get_exam_by_course():
     assert content_get[0]['Date'] == content_post['exam_date']
     assert content_get[0]['Status'] == 'EDITION'
     client.delete('/exams/'+content_get[0]['ExamID'])
+
+
+def test_get_exam_by_course_filtering():
+    response = client.post(
+        '/exams/create_exam/id_curso_test?examDate=2022-12-02T21:33:33&examTitle=TituloExamen',
+        data = '[{"question_type": "DES", "question_content": "Pregunta 1"}]')
+    response_two = client.post(
+        '/exams/create_exam/id_curso_test?examDate=2022-12-02T21:33:34&examTitle=TituloExamen2',
+        data = '[{"question_type": "DES", "question_content": "Pregunta 1"}]')
+    publish_exam_id = response_two.json()['exam_id']
+    response_publish = client.patch('/exams/' + publish_exam_id + '/publish')
+    assert response.status_code == 200
+    assert response_two.status_code == 200
+    assert response_publish.status_code == 200
+    content_post = response.json()
+    content_post_two = response_two.json()
+    content_get_published = client.get('/exams/course/id_curso_test')
+    content_get_edition = client.get('/exams/course/id_curso_test?exam_status=EDITION')
+    content_get_published = client.get('/exams/course/id_curso_test?exam_status=published')
+    assert content_get_edition.status_code == 200
+    assert content_get_published.status_code == 200
+    content_get_edition = content_get_edition.json()
+    content_get_published = content_get_published.json()
+
+    assert content_get_edition[0]['CourseID'] == content_post['course_id']
+    assert content_get_edition[0]['ExamID'] == content_post['exam_id']
+    assert content_get_edition[0]['Date'] == content_post['exam_date']
+    assert content_get_edition[0]['Status'] == 'EDITION'
+    assert len(content_get_edition) == 1
+
+    assert content_get_published[0]['CourseID'] == content_post_two['course_id']
+    assert content_get_published[0]['ExamID'] == content_post_two['exam_id']
+    assert content_get_published[0]['Date'] == content_post_two['exam_date']
+    assert content_get_published[0]['Status'] == 'PUBLISHED'
+    assert len(content_get_published) == 1
+
+    client.delete('/exams/'+content_get_edition[0]['ExamID'])
+    client.delete('/exams/'+content_get_published[0]['ExamID'])
 
 
 def test_get_exam_by_course_not_existent():
