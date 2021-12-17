@@ -244,7 +244,7 @@ def test_edit_exam_not_existent():
     assert response_edit.status_code == status.HTTP_404_NOT_FOUND
 
 
-def test_edit_question():
+def test_edit_question_from_des_to_choice():
     response = client.post(
         '/exams/create_exam/id_curso?examDate=2022-12-02T21:33:33&examTitle=TituloExamen',
         data = '[{"question_type": "DES", "question_content": "Pregunta 1"}]')
@@ -282,6 +282,36 @@ def test_edit_question():
     assert next_questions[0]['ChoiceOptions'][1]['Content'] == 'Choice #2'
     assert next_questions[0]['ChoiceOptions'][2]['Number'] == 2
     assert next_questions[0]['ChoiceOptions'][2]['Content'] == 'Choice #3'
+    client.delete('/exams/'+content['exam_id'])
+
+
+def test_edit_question_from_des_to_des():
+    response = client.post(
+        '/exams/create_exam/id_curso?examDate=2022-12-02T21:33:33&examTitle=TituloExamen',
+        data = '[{"question_type": "DES", "question_content": "Pregunta 1"}]')
+    assert response.status_code == status.HTTP_200_OK
+    content = response.json()
+    initial_questions = client.get('/exams/'+content['exam_id']+'/questions').json()
+    url = '/exams/edit_question/'+initial_questions[0]['QuestionID']
+    patch_response = client.patch(url,
+        data =      
+            '{'+
+                '"question_type": "DES", '+
+                '"question_content": "Desarrollo Edit"'+
+            '}'
+    )
+    assert patch_response.status_code == status.HTTP_202_ACCEPTED
+    next_questions = client.get('/exams/'+content['exam_id']+'/questions').json()
+
+    assert len(initial_questions) == 1
+    assert initial_questions[0]['QuestionContent'] == 'Pregunta 1'
+    assert initial_questions[0]['QuestionType'] == 'DES'
+    assert initial_questions[0]['ExamID'] == content['exam_id']
+
+    assert len(next_questions) == 1
+    assert next_questions[0]['QuestionContent'] == 'Desarrollo Edit'
+    assert next_questions[0]['QuestionType'] == 'DES'
+    assert next_questions[0]['ExamID'] == content['exam_id']
     client.delete('/exams/'+content['exam_id'])
 
 
