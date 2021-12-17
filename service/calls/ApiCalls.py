@@ -243,15 +243,16 @@ async def editExamQuestions(question_id:str, question_content: questionsContent)
     session.commit()
     question.question_type = question_content.question_type
     question.question_content = question_content.question_content
-    for choice_response in question_content.choice_responses:
-        session.add(
-                        ChoiceResponse(
-                            question_id = question_id,
-                            choice_number = choice_response.number,
-                            choice_content = choice_response.content,
-                            #correct = choice_response.correct
+    if question_content.choice_responses != None:
+        for choice_response in question_content.choice_responses:
+            session.add(
+                            ChoiceResponse(
+                                question_id = question_id,
+                                choice_number = choice_response.number,
+                                choice_content = choice_response.content,
+                                #correct = choice_response.correct
+                            )
                         )
-                    )
     session.commit()
     session.add(question)
     session.commit()
@@ -318,6 +319,9 @@ async def deleteExamMark(user_id: str, exam_id:str):
 async def deleteExam(exam_id: str):
     if not session.query(Exam).filter(Exam.exam_id == exam_id).first():
         return JSONResponse (status_code = status.HTTP_404_NOT_FOUND, content = "Exam with ID " + exam_id + " does not exist in the database.")
+    session.query(ExamMark).filter(ExamMark.exam_id == exam_id).delete()
+    session.commit()
+    session.query(UserResponse).filter(UserResponse.exam_id == exam_id).delete()
     questions = session.query(ExamQuestion).filter(ExamQuestion.exam_id == exam_id)
     for question in questions:
         session.query(ChoiceResponse).filter(ChoiceResponse.question_id == question.question_id).delete()
