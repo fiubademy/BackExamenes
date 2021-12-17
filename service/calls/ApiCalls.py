@@ -196,8 +196,7 @@ async def getStudentResponseForQuestion(question_id: str, user_id: str):
             'exam_id': student_response.exam_id,
             'user_id' : student_response.user_id,
             'question_id': student_response.question_id,
-            'response_content': student_response.response_content,
-            'choice_number': student_response.choice_number
+            'response_content': student_response.response_content
         }
     )
 
@@ -260,13 +259,7 @@ async def editExamQuestions(question_id:str, question_content: questionsContent)
 
 
 @router.post('/{exam_id}/answer/{question_id}')
-async def postAnswersExam(exam_id:str , question_id: str, user_id:str, response_content: Optional[str] = None , choice_number: Optional[int] = None):
-    if response_content == None and choice_number == None:
-        return JSONResponse(status_code = status.HTTP_422_VALIDATION_ERROR, content = "Response Content and Choice Number can not be None together.")
-    if response_content != None and choice_number != None:
-        return JSONResponse(status_code = status.HTTP_422_VALIDATION_ERROR, content = "Response Content and Choice Number can not have a value together.")
-    retorno_content = response_content
-    retorno_choice_num = choice_number
+async def postAnswersExam(exam_id:str , question_id: str, user_id:str, response_content: str):
     if session.query(UserResponse).filter(UserResponse.exam_id == exam_id).filter(UserResponse.question_id == question_id).filter(
         UserResponse.user_id == user_id).first() != None: 
             if session.query(ExamMark).filter(ExamMark.student_id == user_id and ExamMark.exam_id == exam_id).first() != None:
@@ -278,11 +271,7 @@ async def postAnswersExam(exam_id:str , question_id: str, user_id:str, response_
                 return JSONResponse(status_code = status.HTTP_403_FORBIDDEN, content = "User has already responded to this exam and has yet not been graded.")
         
     try:
-        if response_content == None:
-            response_content = null()
-        if choice_number == None:
-            choice_number = null()
-        session.add(UserResponse(exam_id = exam_id, question_id = question_id, user_id = user_id, response_content = response_content, choice_number = choice_number))
+        session.add(UserResponse(exam_id = exam_id, question_id = question_id, user_id = user_id, response_content = response_content))
         session.commit()
     except Exception as e:
         session.rollback()
@@ -292,9 +281,8 @@ async def postAnswersExam(exam_id:str , question_id: str, user_id:str, response_
         content = {
             "exam_id":exam_id, 
             "question_id":question_id, 
-            "response_content": retorno_content, 
-            "choice_number":retorno_choice_num
-            }
+            "response_content": response_content
+        }
     )
 
 @router.delete('/responses/{user_id}/{question_id}')

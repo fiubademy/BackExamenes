@@ -388,7 +388,6 @@ def test_hand_in_question_student():
     assert response_hand_in['exam_id'] == content['exam_id']
     assert response_hand_in['question_id'] == question_id
     assert response_hand_in['response_content'] == 'desarrollo_totalmente_completo'
-    assert response_hand_in['choice_number'] == None
     client.delete('/exams/responses/USUARIO/'+question_id)
     client.delete('/exams/'+content['exam_id'])
 
@@ -408,7 +407,6 @@ def test_redo_exam_student():
     assert response_hand_in['exam_id'] == content['exam_id']
     assert response_hand_in['question_id'] == question_id
     assert response_hand_in['response_content'] == 'desarrollo_totalmente_completo'
-    assert response_hand_in['choice_number'] == None
     response_mark = client.post(
         '/exams/'+response_hand_in['exam_id']+'/qualify/USUARIO?mark=2&comments=Desaprobado. Todo mal.');
     assert response_mark.status_code == 201
@@ -420,7 +418,6 @@ def test_redo_exam_student():
     assert response_hand_in['exam_id'] == content['exam_id']
     assert response_hand_in['question_id'] == question_id
     assert response_hand_in['response_content'] == 'Un desarrollo distinto'
-    assert response_hand_in['choice_number'] == None
     response_mark = client.post(
         '/exams/'+response_hand_in['exam_id']+'/qualify/USUARIO?mark=10&comments=Muy buen desarrollo.');
     assert response_mark.status_code == 201
@@ -445,7 +442,6 @@ def test_redo_exam_student_without_being_graded_previously_should_fail():
     assert response_hand_in['exam_id'] == content['exam_id']
     assert response_hand_in['question_id'] == question_id
     assert response_hand_in['response_content'] == 'desarrollo_totalmente_completo'
-    assert response_hand_in['choice_number'] == None
     response_hand_in = client.post(
         '/exams/'+content['exam_id']+'/answer/'+question_id+'?user_id=USUARIO&response_content=Un desarrollo distinto'
     )
@@ -472,7 +468,6 @@ def test_get_user_response_for_question():
     assert content_get.json()['user_id'] == 'USUARIO'
     assert content_get.json()['question_id'] == question_id
     assert content_get.json()['response_content'] == 'desarrollo_totalmente_completo'
-    assert content_get.json()['choice_number'] == None
     client.delete('/exams/responses/USUARIO/'+question_id)
     client.delete('/exams/'+content['exam_id'])
 
