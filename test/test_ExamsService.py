@@ -15,7 +15,7 @@ Base.metadata.drop_all(test_engine)
 Base.metadata.create_all(test_engine)
 ApiCalls.set_engine(test_engine)
 
-
+'''
 def test_create_exam():
     response = client.post(
         '/exams/create_exam/id_curso?examDate=2022-12-02T21:33:33&examTitle=TituloExamen',
@@ -578,4 +578,64 @@ def test_user_is_not_able_to_redo_exam():
     assert response.json() == False
 
     client.delete('/exams/responses/USUARIO/'+question_id)
+    client.delete('/exams/'+content['exam_id'])
+'''
+
+def test_get_students_who_answered_an_exam():
+    response = client.post(
+        '/exams/create_exam/id_curso?examDate=2022-12-02T21:33:33&examTitle=TituloExamen',
+        data = '[{"question_type": "DES", "question_content": "Pregunta 1"}]')
+    assert response.status_code == status.HTTP_200_OK
+    content = response.json()
+    question_id = client.get('/exams/'+content['exam_id']+'/questions').json()
+    question_id = question_id[0]['QuestionID']
+    response_hand_in = client.post(
+        '/exams/'+content['exam_id']+'/answer/'+question_id+'?user_id=USUARIO&response_content=desarrollo_totalmente_completo'
+    )
+    get_students = client.get('/exams/' + content['exam_id'] + '/students_who_answered')
+    assert get_students.status_code == 200
+    get_students = get_students.json()
+    assert len(get_students) == 1
+    assert get_students[0] == 'USUARIO'
+    client.delete('/exams/'+content['exam_id'])
+
+
+def test_get_students_already_marked():
+    response = client.post(
+        '/exams/create_exam/id_curso?examDate=2022-12-02T21:33:33&examTitle=TituloExamen',
+        data = '[{"question_type": "DES", "question_content": "Pregunta 1"}]')
+    assert response.status_code == status.HTTP_200_OK
+    content = response.json()
+    response_qualification = client.post('/exams/'+content['exam_id']+'/qualify/CALIFICADO?mark=10&comments=muy buena resolucion')
+    assert response_qualification.status_code == 201
+    get_marked_students = client.get('/exams/' + content['exam_id'] + '/students_with_qualification')
+    assert get_marked_students.status_code == 200
+    get_marked_students = get_marked_students.json()
+    assert len(get_marked_students) == 1
+    assert get_marked_students[0]['mark'] == 10
+    assert get_marked_students[0]['student_id'] == 'CALIFICADO'
+    client.delete('/exams/'+content['exam_id'])
+
+
+def test_get_students_who_answered_an_exam_without_mark():
+    response = client.post(
+        '/exams/create_exam/id_curso?examDate=2022-12-02T21:33:33&examTitle=TituloExamen',
+        data = '[{"question_type": "DES", "question_content": "Pregunta 1"}]')
+    assert response.status_code == status.HTTP_200_OK
+    content = response.json()
+    question_id = client.get('/exams/'+content['exam_id']+'/questions').json()
+    question_id = question_id[0]['QuestionID']
+    response_hand_in = client.post(
+        '/exams/'+content['exam_id']+'/answer/'+question_id+'?user_id=USUARIO&response_content=desarrollo_totalmente_completo'
+    )
+    response_hand_in_two = client.post(
+        '/exams/'+content['exam_id']+'/answer/'+question_id+'?user_id=USUARIO2&response_content=desarrollo_totalmente_completo'
+    )
+    response_qualification = client.post('/exams/'+content['exam_id']+'/qualify/USUARIO2?mark=10&comments=muy buena resolucion')
+    assert response_qualification.status_code == 201
+    get_students = client.get('/exams/' + content['exam_id'] + '/students_without_qualification')
+    assert get_students.status_code == 200
+    get_students = get_students.json()
+    assert len(get_students) == 1
+    assert get_students[0] == 'USUARIO'
     client.delete('/exams/'+content['exam_id'])

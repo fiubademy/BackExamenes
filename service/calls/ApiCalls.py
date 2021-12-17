@@ -427,3 +427,59 @@ async def publish_exam(exam_id: str):
     session.add(exam)
     session.commit()
     return JSONResponse(status_code= status.HTTP_200_OK, content= "Exam with id" + exam_id + " was correctly published")
+
+
+@router.get('/{exam_id}/students_who_answered')
+async def get_students_that_answered_exam(exam_id: str):
+    if not session.query(Exam).filter(Exam.exam_id == exam_id).first():
+        return JSONResponse(status_code = status.HTTP_404_NOT_FOUND, content = "That exam does not exist.")
+    students = []
+    students_query = session.query(UserResponse).filter(UserResponse.exam_id == exam_id)
+    if not students_query.first():
+        return JSONResponse(status_code = status.HTTP_404_NOT_FOUND, content = "No users have answered this exam yet.")
+    for student in students_query:
+        if student.user_id not in students:
+            students.append(student.user_id)
+    return JSONResponse(status_code = status.HTTP_200_OK, content = students)
+
+
+def check_student_in_list(student, students):
+    for student_in_list in students:
+        if student_in_list['student_id'] == student.student_id:
+            return True
+    return False
+
+
+@router.get('/{exam_id}/students_with_qualification')
+async def get_students_that_have_qualifications(exam_id: str):
+    if not session.query(Exam).filter(Exam.exam_id == exam_id).first():
+        return JSONResponse(status_code = status.HTTP_404_NOT_FOUND, content = "That exam does not exist.")
+    students = []
+    students_query = session.query(ExamMark).filter(ExamMark.exam_id == exam_id)
+    for student in students_query:
+        if not check_student_in_list(student, students):
+            students.append({'student_id': student.student_id, 'mark': student.mark})
+    return JSONResponse(status_code = 200, content = students)
+
+
+@router.get('/{exam_id}/students_without_qualification')
+async def get_students_that_have_qualifications(exam_id: str):
+    if not session.query(Exam).filter(Exam.exam_id == exam_id).first():
+        return JSONResponse(status_code = status.HTTP_404_NOT_FOUND, content = "That exam does not exist.")
+
+    # Obtengo los usuarios que respondieron y tienen nota
+    students_with_mark = []
+    students_query = session.query(ExamMark).filter(ExamMark.exam_id == exam_id)
+    for student in students_query:
+        if student not in students_with_mark:
+            students_with_mark.append(student.student_id)
+
+    # Obtengo a los que respondieron pero filtrando aquellos que tienen nota
+    students_answered_without_mark = []
+    students_query = session.query(UserResponse).filter(UserResponse.exam_id == exam_id)
+    if not students_query.first():
+        return JSONResponse(status_code = status.HTTP_404_NOT_FOUND, content = "No users have answered this exam yet.")
+    for student in students_query:
+        if student.user_id not in students_answered_without_mark and student.user_id not in students_with_mark:
+            students_answered_without_mark.append(student.user_id)
+    return JSONResponse(status_code = 200, content = students_answered_without_mark)
