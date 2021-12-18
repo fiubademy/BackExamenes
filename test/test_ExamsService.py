@@ -24,7 +24,7 @@ def test_create_exam():
     content = response.json()
     exam_id = content['exam_id']
     assert content['course_id'] == 'id_curso'
-    assert content['exam_date'] == "02/12/22 21:33"
+    assert content['exam_date'] == "2022-12-02T21:33:33"
     client.delete('/exams/'+exam_id)
 
 
@@ -36,7 +36,7 @@ def test_create_exam_without_questions_initially():
     content = response.json()
     exam_id = content['exam_id']
     assert content['course_id'] == 'id_curso'
-    assert content['exam_date'] == "02/12/22 21:33"
+    assert content['exam_date'] == "2022-12-02T21:33:33"
     client.delete('/exams/'+exam_id)
 
 
@@ -49,7 +49,7 @@ def test_publish_exam():
     content = response.json()
     exam_id = content['exam_id']
     assert content['course_id'] == 'id_curso'
-    assert content['exam_date'] == "02/12/22 21:33"
+    assert content['exam_date'] == "2022-12-02T21:33:33"
     response = client.patch(
         '/exams/' + exam_id + '/publish'
     )
@@ -272,7 +272,7 @@ def test_edit_exam():
     response_edit = client.patch(url)
     assert response_edit.status_code == status.HTTP_202_ACCEPTED
     content_edit = client.get('/exams/'+content['exam_id']).json()
-    assert content_edit['Date'] == '22/12/12 21:45'
+    assert content_edit['Date'] == '2012-12-22T21:45:33'
     assert content_edit['ExamTitle'] == 'tituloEditado'
     client.delete('/exams/'+content['exam_id'])
 
@@ -614,6 +614,7 @@ def test_get_students_already_marked():
     assert len(get_marked_students) == 1
     assert get_marked_students[0]['mark'] == 10
     assert get_marked_students[0]['student_id'] == 'CALIFICADO'
+    assert get_marked_students[0]['comments'] == "muy buena resolucion"
     client.delete('/exams/'+content['exam_id'])
 
 
@@ -637,5 +638,25 @@ def test_get_students_who_answered_an_exam_without_mark():
     assert get_students.status_code == 200
     get_students = get_students.json()
     assert len(get_students) == 1
-    assert get_students[0] == 'USUARIO'
+    assert get_students[0]['student_id'] == 'USUARIO'
+    client.delete('/exams/'+content['exam_id'])
+
+
+def test_get_students_already_marked_filtering_by_id():
+    response = client.post(
+        '/exams/create_exam/id_curso?examDate=2022-12-02T21:33:33&examTitle=TituloExamen',
+        data = '[{"question_type": "DES", "question_content": "Pregunta 1"}]')
+    assert response.status_code == status.HTTP_200_OK
+    content = response.json()
+    response_qualification = client.post('/exams/'+content['exam_id']+'/qualify/CALIFICADO?mark=10&comments=muy buena resolucion')
+    assert response_qualification.status_code == 201
+    get_marked_students = client.get('/exams/' + content['exam_id'] + '/students_with_qualification?student_id=CALIFICADO')
+    assert get_marked_students.status_code == 200
+    get_marked_students = get_marked_students.json()
+    assert len(get_marked_students) == 1
+    assert get_marked_students[0]['mark'] == 10
+    assert get_marked_students[0]['student_id'] == 'CALIFICADO'
+    assert get_marked_students[0]['comments'] == "muy buena resolucion"
+    get_marked_students_not_found = client.get('/exams/' + content['exam_id'] + '/students_with_qualification?student_id=NO_EXISTO')
+    assert get_marked_students_not_found.status_code == 404
     client.delete('/exams/'+content['exam_id'])
