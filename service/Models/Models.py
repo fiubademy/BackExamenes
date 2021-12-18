@@ -62,10 +62,6 @@ class ChoiceResponse(Base):
     question_id = Column(String, ForeignKey('exams_questions.question_id'), primary_key = True)
     choice_number = Column(Integer, primary_key = True, nullable = False)
     choice_content = Column(String, nullable = False)
-    #correct = Column(String, nullable = False)
-    #__table_args__ = (
-    #    CheckConstraint("correct = 'Y' or correct = 'N'"),
-    #)
     
 
 class UserResponse(Base):
@@ -73,13 +69,8 @@ class UserResponse(Base):
     exam_id = Column(String, ForeignKey('exams.exam_id'), nullable = False)
     user_id = Column(String, primary_key = True, nullable = False)
     question_id = Column(String, ForeignKey('exams_questions.question_id'), primary_key = True, nullable = False)
-    response_content = Column(String)
+    response_content = Column(String, nullable = False)
     date_answered = Column(DateTime, nullable = False)
-    choice_number = Column(Integer)
-    __table_args__ = (
-        CheckConstraint("NOT(response_content IS NULL AND choice_number IS NULL)"),
-        CheckConstraint("NOT(response_content IS NOT NULL AND choice_number IS NOT NULL)")
-    )
 
 
 class ExamMark(Base):
