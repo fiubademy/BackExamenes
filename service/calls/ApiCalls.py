@@ -48,7 +48,7 @@ async def getExamByCourses(course_id: str, exam_status: Optional[str] = ''):
             {
                 'ExamID': exam.exam_id, 
                 'CourseID': exam.course_id,
-                'Date': exam.exam_date.strftime('%d/%m/%y %H:%M'),
+                'Date': exam.exam_date.isoformat(), # exam.exam_date.strftime('%d/%m/%y %H:%M'),
                 'ExamTitle': exam.exam_title,
                 'Status': exam.status
             }
@@ -72,7 +72,7 @@ async def getExamById(exam_id: str):
         content = {
                 'ExamID': exam.exam_id, 
                 'CourseID': exam.course_id,
-                'Date': exam.exam_date.strftime('%d/%m/%y %H:%M'),
+                'Date': exam.exam_date.isoformat(), # exam.exam_date.strftime('%d/%m/%y %H:%M'),
                 'ExamTitle': exam.exam_title,
                 'Status': exam.status
             }
@@ -143,7 +143,15 @@ async def createExam(course_id: str, examDate: datetime, examTitle: str, questio
                 #if num_choices_correct == 0:
                 #     rollback_exam_creation(exam_id)
                 #     return JSONResponse(status_Code = status.HTTP_400_BAD_REQUEST, content = 'Choice answers with no correct answer has been found.')
-    return JSONResponse(status_code = status.HTTP_200_OK, content = {"exam_id":exam_id, "course_id":course_id, "exam_date": examDate.strftime('%d/%m/%y %H:%M'), 'ExamTitle': examTitle})
+    return JSONResponse(
+        status_code = status.HTTP_200_OK, 
+        content = {
+            "exam_id":exam_id, 
+            "course_id":course_id, 
+            "exam_date": examDate.isoformat(), # examDate.strftime('%d/%m/%y %H:%M'), 
+            'ExamTitle': examTitle
+        }
+    )
 
 
 @router.get('/{exam_id}/questions')
@@ -271,7 +279,12 @@ async def postAnswersExam(exam_id:str , question_id: str, user_id:str, response_
                 return JSONResponse(status_code = status.HTTP_403_FORBIDDEN, content = "User has already responded to this exam and has yet not been graded.")
         
     try:
-        session.add(UserResponse(exam_id = exam_id, question_id = question_id, user_id = user_id, response_content = response_content))
+        session.add(UserResponse(
+            exam_id = exam_id, 
+            question_id = question_id, 
+            user_id = user_id, 
+            response_content = response_content,
+            date_answered = datetime.now()))
         session.commit()
     except Exception as e:
         session.rollback()
@@ -450,20 +463,29 @@ def check_student_in_list(student, students):
     return False
 
 
+def check_student_in_list_user_response(student, students_list):
+    for student_in_list in students_list:
+        if student_in_list['student_id'] == student.user_id:
+            return True
+    return False
+
+
 @router.get('/{exam_id}/students_with_qualification')
-async def get_students_that_have_qualifications(exam_id: str):
+async def get_students_that_have_qualifications(exam_id: str, student_id: Optional[str]=''):
     if not session.query(Exam).filter(Exam.exam_id == exam_id).first():
         return JSONResponse(status_code = status.HTTP_404_NOT_FOUND, content = "That exam does not exist.")
     students = []
-    students_query = session.query(ExamMark).filter(ExamMark.exam_id == exam_id)
+    students_query = session.query(ExamMark).filter(ExamMark.exam_id == exam_id).filter(ExamMark.student_id.like('%' + student_id + '%'))
+    if students_query.first() == None:
+        return JSONResponse(status_code = status.HTTP_404_NOT_FOUND, content = "No qualificated students were found.")
     for student in students_query:
         if not check_student_in_list(student, students):
-            students.append({'student_id': student.student_id, 'mark': student.mark})
+            students.append({'student_id': student.student_id, 'mark': student.mark, 'comments': student.comments})
     return JSONResponse(status_code = 200, content = students)
 
 
 @router.get('/{exam_id}/students_without_qualification')
-async def get_students_that_have_qualifications(exam_id: str):
+async def get_students_that_dont_have_qualifications(exam_id: str):
     if not session.query(Exam).filter(Exam.exam_id == exam_id).first():
         return JSONResponse(status_code = status.HTTP_404_NOT_FOUND, content = "That exam does not exist.")
 
@@ -480,6 +502,6 @@ async def get_students_that_have_qualifications(exam_id: str):
     if not students_query.first():
         return JSONResponse(status_code = status.HTTP_404_NOT_FOUND, content = "No users have answered this exam yet.")
     for student in students_query:
-        if student.user_id not in students_answered_without_mark and student.user_id not in students_with_mark:
-            students_answered_without_mark.append(student.user_id)
+        if not check_student_in_list_user_response(student, students_answered_without_mark) and student.user_id not in students_with_mark:
+            students_answered_without_mark.append({'student_id': student.user_id, 'date_answered': student.date_answered.isoformat()})
     return JSONResponse(status_code = 200, content = students_answered_without_mark)
