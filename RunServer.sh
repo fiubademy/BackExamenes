@@ -1,1 +1,1 @@
-docker run -p 8001:8001 exam-service-image
+docker run -i -p 8001:8000 exam-service-image
