@@ -7,6 +7,7 @@ COPY requirements.txt /app/
 RUN pip3 install -r requirements.txt
 EXPOSE 8001
 COPY Commands.sh /app/
-COPY service/. /app/
+RUN mkdir service
+COPY service/. /app/service
 CMD ./Commands.sh
 
