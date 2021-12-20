@@ -505,3 +505,33 @@ async def get_students_that_dont_have_qualifications(exam_id: str):
         if not check_student_in_list_user_response(student, students_answered_without_mark) and student.user_id not in students_with_mark:
             students_answered_without_mark.append({'student_id': student.user_id, 'date_answered': student.date_answered.isoformat()})
     return JSONResponse(status_code = 200, content = students_answered_without_mark)
+
+
+@router.get('/{course_id}/student_state/{user_id}')
+async def get_student_state_in_course(course_id:str, user_id:str):
+    exams_quantity = session.query(Exam).filter(Exam.course_id == course_id).count()
+    if exams_quantity == 0:
+        return JSONResponse(status_code = status.HTTP_404_NOT_FOUND, content="Course has no exams in it.")
+    exam_marks = session.query(ExamMark).filter(ExamMark.student_id == user_id)
+    quantity_marked = exam_marks.count()
+    passed = True
+    quantity_not_passed = 0
+    average = 0
+    for mark in exam_marks:
+        if mark.mark < 6:
+            passed = False
+            quantity_not_passed += 1
+        average += mark.mark
+    if quantity_marked > 0:
+        average = average/quantity_marked
+    if quantity_marked < exams_quantity or not passed:
+        return JSONResponse(
+            status_code = status.HTTP_200_OK, 
+            content = {
+                "status": "Unfinished", 
+                "average_mark": average, 
+                "exams_not_passed": exams_quantity - quantity_marked + quantity_not_passed # Aun no completados, o desaprobados
+            }
+        )
+    if passed and quantity_marked == exams_quantity:
+        return JSONResponse(status_code = status.HTTP_200_OK, content = {"status": "Finished", "average_mark": average, "exams_not_passed": 0})
