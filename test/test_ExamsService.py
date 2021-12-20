@@ -660,3 +660,61 @@ def test_get_students_already_marked_filtering_by_id():
     get_marked_students_not_found = client.get('/exams/' + content['exam_id'] + '/students_with_qualification?student_id=NO_EXISTO')
     assert get_marked_students_not_found.status_code == 404
     client.delete('/exams/'+content['exam_id'])
+
+
+def test_ask_state_in_course_without_exams():
+    response = client.get('/exams/id_curso/student_state/USUARIO')
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+def test_state_user_not_finished_exams():
+    response_create = client.post(
+        '/exams/create_exam/id_curso?examDate=2022-12-02T21:33:33&examTitle=TituloExamen',
+        data = '[{"question_type": "DES", "question_content": "Pregunta 1"}]')
+    response_create_two = client.post(
+        '/exams/create_exam/id_curso?examDate=2022-12-02T21:33:33&examTitle=TituloExamen',
+        data = '[{"question_type": "DES", "question_content": "Pregunta 1"}]')
+    response_qualification_one = client.post('/exams/'+response_create.json()['exam_id']+'/qualify/USUARIO?mark=10&comments=muy buena resolucion')
+    response_state = client.get('/exams/id_curso/student_state/USUARIO')
+    assert response_state.status_code == status.HTTP_200_OK
+    assert response_state.json()['status'] == 'Unfinished'
+    assert response_state.json()['average_mark'] == 10
+    assert response_state.json()['exams_not_passed'] == 1
+    client.delete('/exams/'+response_create.json()['exam_id'])
+    client.delete('/exams/'+response_create_two.json()['exam_id'])
+
+
+def test_state_user_failed_exams():
+    response_create = client.post(
+        '/exams/create_exam/id_curso?examDate=2022-12-02T21:33:33&examTitle=TituloExamen',
+        data = '[{"question_type": "DES", "question_content": "Pregunta 1"}]')
+    response_create_two = client.post(
+        '/exams/create_exam/id_curso?examDate=2022-12-02T21:33:33&examTitle=TituloExamen',
+        data = '[{"question_type": "DES", "question_content": "Pregunta 1"}]')
+    response_qualification_one = client.post('/exams/'+response_create.json()['exam_id']+'/qualify/USUARIO?mark=2&comments=re mala res')
+    response_qualification_two = client.post('/exams/'+response_create_two.json()['exam_id']+'/qualify/USUARIO?mark=4&comments=re mala res')
+    response_state = client.get('/exams/id_curso/student_state/USUARIO')
+    assert response_state.status_code == status.HTTP_200_OK
+    assert response_state.json()['status'] == 'Unfinished'
+    assert response_state.json()['average_mark'] == 3
+    assert response_state.json()['exams_not_passed'] == 2
+    client.delete('/exams/'+response_create.json()['exam_id'])
+    client.delete('/exams/'+response_create_two.json()['exam_id'])
+
+
+def test_state_user_passed():
+    response_create = client.post(
+        '/exams/create_exam/id_curso?examDate=2022-12-02T21:33:33&examTitle=TituloExamen',
+        data = '[{"question_type": "DES", "question_content": "Pregunta 1"}]')
+    response_create_two = client.post(
+        '/exams/create_exam/id_curso?examDate=2022-12-02T21:33:33&examTitle=TituloExamen',
+        data = '[{"question_type": "DES", "question_content": "Pregunta 1"}]')
+    response_qualification_one = client.post('/exams/'+response_create.json()['exam_id']+'/qualify/USUARIO?mark=6&comments=zafarelli')
+    response_qualification_two = client.post('/exams/'+response_create_two.json()['exam_id']+'/qualify/USUARIO?mark=8&comments=no tan mal')
+    response_state = client.get('/exams/id_curso/student_state/USUARIO')
+    assert response_state.status_code == status.HTTP_200_OK
+    assert response_state.json()['status'] == 'Finished'
+    assert response_state.json()['average_mark'] == 7
+    assert response_state.json()['exams_not_passed'] == 0
+    client.delete('/exams/'+response_create.json()['exam_id'])
+    client.delete('/exams/'+response_create_two.json()['exam_id'])
