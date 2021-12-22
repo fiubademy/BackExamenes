@@ -509,7 +509,7 @@ async def get_students_that_dont_have_qualifications(exam_id: str):
 
 @router.get('/{course_id}/student_state/{user_id}')
 async def get_student_state_in_course(course_id:str, user_id:str):
-    exams_quantity = session.query(Exam).filter(Exam.course_id == course_id).count()
+    exams_quantity = session.query(Exam).filter(Exam.course_id == course_id).filter(Exam.status == "PUBLISHED").count()
     if exams_quantity == 0:
         return JSONResponse(status_code = status.HTTP_404_NOT_FOUND, content="Course has no exams in it.")
     exam_marks = session.query(ExamMark).filter(ExamMark.student_id == user_id)
