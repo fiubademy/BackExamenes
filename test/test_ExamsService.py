@@ -674,6 +674,8 @@ def test_state_user_not_finished_exams():
     response_create_two = client.post(
         '/exams/create_exam/id_curso?examDate=2022-12-02T21:33:33&examTitle=TituloExamen',
         data = '[{"question_type": "DES", "question_content": "Pregunta 1"}]')
+    client.patch('/exams/'+response_create.json()['exam_id']+'/publish')
+    client.patch('/exams/'+response_create_two.json()['exam_id']+'/publish')
     response_qualification_one = client.post('/exams/'+response_create.json()['exam_id']+'/qualify/USUARIO?mark=10&comments=muy buena resolucion')
     response_state = client.get('/exams/id_curso/student_state/USUARIO')
     assert response_state.status_code == status.HTTP_200_OK
@@ -691,6 +693,8 @@ def test_state_user_failed_exams():
     response_create_two = client.post(
         '/exams/create_exam/id_curso?examDate=2022-12-02T21:33:33&examTitle=TituloExamen',
         data = '[{"question_type": "DES", "question_content": "Pregunta 1"}]')
+    client.patch('/exams/'+response_create.json()['exam_id']+'/publish')
+    client.patch('/exams/'+response_create_two.json()['exam_id']+'/publish')
     response_qualification_one = client.post('/exams/'+response_create.json()['exam_id']+'/qualify/USUARIO?mark=2&comments=re mala res')
     response_qualification_two = client.post('/exams/'+response_create_two.json()['exam_id']+'/qualify/USUARIO?mark=4&comments=re mala res')
     response_state = client.get('/exams/id_curso/student_state/USUARIO')
@@ -706,9 +710,11 @@ def test_state_user_passed():
     response_create = client.post(
         '/exams/create_exam/id_curso?examDate=2022-12-02T21:33:33&examTitle=TituloExamen',
         data = '[{"question_type": "DES", "question_content": "Pregunta 1"}]')
+    client.patch('/exams/'+response_create.json()['exam_id']+'/publish')
     response_create_two = client.post(
         '/exams/create_exam/id_curso?examDate=2022-12-02T21:33:33&examTitle=TituloExamen',
         data = '[{"question_type": "DES", "question_content": "Pregunta 1"}]')
+    client.patch('/exams/'+response_create_two.json()['exam_id']+'/publish')
     response_qualification_one = client.post('/exams/'+response_create.json()['exam_id']+'/qualify/USUARIO?mark=6&comments=zafarelli')
     response_qualification_two = client.post('/exams/'+response_create_two.json()['exam_id']+'/qualify/USUARIO?mark=8&comments=no tan mal')
     response_state = client.get('/exams/id_curso/student_state/USUARIO')
