@@ -513,7 +513,7 @@ async def get_student_state_in_course(course_id:str, user_id:str):
     exams_quantity = courseExams.count()
     if exams_quantity == 0:
         return JSONResponse(status_code = status.HTTP_404_NOT_FOUND, content="Course has no exams in it
-    exam_marks = session.query(ExamMark).filter(ExamMark.student_id == user_id).filter(ExamMark.exam_id.in_(courseExams)
+    exam_marks = session.query(ExamMark).filter(ExamMark.student_id == user_id).filter(ExamMark.exam_id.in_(courseExams))
     quantity_marked = exam_marks.count()
     passed = True
     quantity_not_passed = 0
