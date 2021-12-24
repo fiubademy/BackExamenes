@@ -517,7 +517,7 @@ async def get_student_state_in_course(course_id:str, user_id:str):
     passed = True
     quantity_not_passed = 0
     average = 0
-    print(f"{quantity_marked}, {passed}, {quantitiy_not_passed}, {average}")
+    print(f"{quantity_marked}, {passed}, {quantity_not_passed}, {average}")
     if quantity_marked == 0:
         return JSONResponse(status_code = status.HTTP_404_NOT_FOUND, content = "User has no marks in exam yet")
     for mark in exam_marks:
@@ -525,10 +525,10 @@ async def get_student_state_in_course(course_id:str, user_id:str):
             passed = False
             quantity_not_passed += 1
         average += mark.mark
-    print(f"{quantity_marked}, {passed}, {quantitiy_not_passed}, {average}")
+    print(f"{quantity_marked}, {passed}, {quantity_not_passed}, {average}")
     if quantity_marked > 0:
         average = average/quantity_marked
-    print(f"{quantity_marked}, {passed}, {quantitiy_not_passed}, {average}")
+    print(f"{quantity_marked}, {passed}, {quantity_not_passed}, {average}")
     if quantity_marked < exams_quantity or not passed:
         return JSONResponse(
             status_code = status.HTTP_200_OK, 
@@ -538,6 +538,6 @@ async def get_student_state_in_course(course_id:str, user_id:str):
                 "exams_not_passed": exams_quantity - quantity_marked + quantity_not_passed # Aun no completados, o desaprobados
             }
         )
-    print(f"{quantity_marked}, {passed}, {quantitiy_not_passed}, {average}")
+    print(f"{quantity_marked}, {passed}, {quantity_not_passed}, {average}")
     if passed and quantity_marked == exams_quantity:
         return JSONResponse(status_code = status.HTTP_200_OK, content = {"status": "Finished", "average_mark": average, "exams_not_passed": 0})
